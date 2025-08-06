@@ -1,0 +1,117 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UUID & 密碼加密產生器</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2rem; line-height: 1.5; }
+    h1 { margin-bottom: 1rem; }
+    .section { margin-bottom: 2rem; }
+    button { margin: 0.3rem; padding: 0.3rem 0.6rem; cursor: pointer; }
+    input, pre { padding: 0.5rem; box-sizing: border-box; font-family: monospace; }
+    input { flex: 1; }
+    .row { display: flex; align-items: center; gap: 0.5rem; }
+  </style>
+
+  <!-- 載入本地 bcrypt.js -->
+  <script src="./bcrypt.min.js"></script>
+  <!-- Alias 檢查：如果只有 dcodeIO.bcrypt，將它指給 window.bcrypt -->
+  <script>
+    if (!window.bcrypt && window.dcodeIO && window.dcodeIO.bcrypt) {
+      window.bcrypt = window.dcodeIO.bcrypt;
+    }
+  </script>
+</head>
+<body>
+  <h1>UUID & 密碼加密產生器</h1>
+
+  <!-- 產生 UUID（帶 -） -->
+  <div class="section">
+    <h2>帶「-」的 UUID</h2>
+    <button id="gen-uuid-hyphen">產生 UUID</button>
+    <pre id="uuid-hyphen-output" readonly></pre>
+  </div>
+
+  <!-- 產生 UUID（不帶 -） -->
+  <div class="section">
+    <h2>不帶「-」的 UUID</h2>
+    <button id="gen-uuid-nohyphen">產生 UUID</button>
+    <pre id="uuid-nohyphen-output" readonly></pre>
+  </div>
+
+  <!-- bcrypt 密碼加密 -->
+  <div class="section">
+    <h2>bcrypt 密碼加密</h2>
+    <label for="password-input">請輸入要加密的密碼：</label>
+    <div class="row">
+      <input type="password" id="password-input" placeholder="輸入明文密碼" />
+      <button id="toggle-pwd-eye" title="顯示／隱藏密碼">👁️</button>
+      <button id="gen-bcrypt">產生 bcrypt Hash</button>
+    </div>
+
+    <div class="row" style="margin-top:0.5rem;">
+      <input type="password" id="bcrypt-output" readonly placeholder="加密後的 Hash 會顯示在這裡" />
+      <button id="toggle-hash-eye" title="顯示／隱藏 Hash">👁️</button>
+      <button id="copy-btn" title="複製 Hash">📋</button>
+    </div>
+  </div>
+
+  <script>
+    // UUID 按鈕
+    document.getElementById('gen-uuid-hyphen').addEventListener('click', () => {
+      document.getElementById('uuid-hyphen-output').textContent = crypto.randomUUID();
+    });
+    document.getElementById('gen-uuid-nohyphen').addEventListener('click', () => {
+      document.getElementById('uuid-nohyphen-output').textContent =
+        crypto.randomUUID().replace(/-/g, '');
+    });
+
+    // 切換明文密碼顯示/隱藏
+    document.getElementById('toggle-pwd-eye').addEventListener('click', () => {
+      const pwdIn = document.getElementById('password-input');
+      pwdIn.type = pwdIn.type === 'password' ? 'text' : 'password';
+    });
+
+    // 產生 bcrypt hash
+    document.getElementById('gen-bcrypt').addEventListener('click', () => {
+      const pwd = document.getElementById('password-input').value;
+      const out = document.getElementById('bcrypt-output');
+      if (!pwd) {
+        return alert('請先輸入密碼');
+      }
+      if (!bcrypt || typeof bcrypt.hash !== 'function') {
+        return alert('錯誤：bcrypt.hash 不可用');
+      }
+      // 顯示加密中
+      out.type = 'text';
+      out.value = '加密中…';
+      bcrypt.hash(pwd, 12, (err, hash) => {
+        if (err) {
+          out.type = 'text';
+          out.value = 'Error: ' + err;
+        } else {
+          out.type = 'password';
+          out.value = hash;
+        }
+      });
+    });
+
+    // 切換 Hash 顯示/隱藏
+    document.getElementById('toggle-hash-eye').addEventListener('click', () => {
+      const out = document.getElementById('bcrypt-output');
+      out.type = out.type === 'password' ? 'text' : 'password';
+    });
+
+    // 複製到剪貼簿
+    document.getElementById('copy-btn').addEventListener('click', () => {
+      const out = document.getElementById('bcrypt-output');
+      if (!out.value) return;
+      navigator.clipboard.writeText(out.value)
+        .then(() => alert('已複製到剪貼簿'))
+        .catch(() => alert('複製失敗'));
+    });
+  </script>
+</body>
+</html>
